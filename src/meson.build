@@ -16,12 +16,21 @@ bios_bmc_smm_error_logger_dep = declare_dependency(
     dependencies: bios_bmc_smm_error_logger_pre,
 )
 
+libfuzzer_args = [
+  '-fsanitize=fuzzer,address',  # Add 'undefined' or 'memory' if needed
+  '-fno-omit-frame-pointer',
+  '-g'
+]
+
+libfuzzer_dep = declare_dependency(
+  compile_args: libfuzzer_args,
+  link_args: libfuzzer_args
+)
+
+
 executable(
-    'bios-bmc-smm-error-logger',
-    'main.cpp',
-    conf_h,
-    implicit_include_directories: false,
-    dependencies: [bios_bmc_smm_error_logger_dep, rde_dep],
-    install: true,
-    install_dir: get_option('bindir'),
+    'bios-bmc-smm-error-logger-fuzzer',
+    'fuzzer.cpp',
+    'read_loop.cpp',
+    dependencies: [bios_bmc_smm_error_logger_dep, rde_dep, libfuzzer_dep],
 )
