@@ -24,13 +24,8 @@
 #include <memory>
 
 namespace bios_bmc_smm_error_logger {
-
-    // Function declaration (make sure it matches the function signature in the .cpp file)
-    void readLoop(
-        boost::asio::basic_waitable_timer<std::chrono::_V2::steady_clock>* timer,
-        std::shared_ptr<BufferInterface> buffer,
-        std::shared_ptr<rde::RdeCommandHandler> rdeCommandHandler,
-        const boost::system::error_code& ec
-    );
-
+    void readLoop(boost::asio::steady_timer* t,
+        const std::shared_ptr<BufferInterface>& bufferInterface,
+        const std::shared_ptr<rde::RdeCommandHandler>& rdeCommandHandler,
+        const boost::system::error_code& error);
 }

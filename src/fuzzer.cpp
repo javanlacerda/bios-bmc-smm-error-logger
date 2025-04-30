@@ -1,7 +1,7 @@
 #include "config.h"
 
 #include "buffer.hpp"
-#include "read_loop.cpp"
+#include "read_loop.hpp"
 #include "pci_handler.hpp"
 #include "rde/external_storer_file.hpp"
 #include "rde/external_storer_interface.hpp"
@@ -73,7 +73,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
         std::make_shared<rde::RdeCommandHandler>(std::move(storer));
 
   boost::system::error_code ec;
-  readLoop(
+  bios_bmc_smm_error_logger::readLoop(
     static_cast<boost::asio::basic_waitable_timer<std::chrono::_V2::steady_clock>*>(nullptr),
     std::move(bufferHandler), std::move(rdeCommandHandler), ec
   );
