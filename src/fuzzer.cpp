@@ -6,7 +6,6 @@
 #include "rde/external_storer_file.hpp"
 #include "rde/external_storer_interface.hpp"
 #include "rde/rde_handler.hpp"
-#include "read_loop.hpp" 
 
 #include <boost/asio.hpp>
 #include <boost/endian/conversion.hpp>
@@ -25,30 +24,21 @@
 
 using namespace bios_bmc_smm_error_logger;
 
-namespace {
-  constexpr std::size_t memoryRegionSize = MEMORY_REGION_SIZE;
-  constexpr std::size_t memoryRegionOffset = MEMORY_REGION_OFFSET;
-}
-
 class FakePciDataHandler : public DataInterface {
   public:
-    explicit FakePciDataHandler(uint32_t RegionAddress, uint8_t *Data, size_t Size)
-        : _regionAddress(RegionAddress), data_(Data), size_(Size) {}
+    explicit FakePciDataHandler(uint8_t *Data, size_t Size)
+        : data_(Data), size_(Size) {}
 
     std::vector<uint8_t> read(uint32_t offset, uint32_t length) override {
-      if (offset > size_ || length == 0)
-        {
-            stdplus::print(stderr,
-                          "[read] Offset [{}] was bigger than regionSize [{}] "
-                          "OR length [{}] was equal to 0\n",
-                          offset, size_, length);
-            return {};
-        }
+      if (length == 0 || offset >= size_ || offset > size_ - length || size_ == 0) {
+          stdplus::print(stderr,
+                        "[read] Invalid read: offset [{}], length [{}], size [{}]\n",
+                        offset, length, size_);
+          return {};
+      }
 
-      // Read up to regionSize in case the offset + length overflowed
-      uint32_t finalLength =
-          (offset + length < size_) ? length : size_ - offset;
-      return std::vector<uint8_t>(data_  + offset, data_ + finalLength);
+      uint32_t finalLength = length;
+      return std::vector<uint8_t>(data_ + offset, data_ + offset + finalLength);
     }
 
     uint32_t write(const uint32_t offset, const std::span<const uint8_t> bytes) override {
@@ -61,7 +51,6 @@ class FakePciDataHandler : public DataInterface {
     }
 
   private:
-    uint8_t _regionAddress;
     uint8_t *data_;
     size_t size_;
 };
@@ -75,12 +64,15 @@ class FakeStorer : public bios_bmc_smm_error_logger::rde::ExternalStorerInterfac
 };
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
-  // Copy input data to a writable buffer
-  (void)Size;  // Mark as intentionally unused
-  std::vector<uint8_t> buffer(Data, Data + memoryRegionSize);
+
+  if (Size < 48) {
+    return 0;
+  }
   
+  std::vector<uint8_t> buffer(Data, Data + Size);
+
   std::unique_ptr<DataInterface> pciDataHandler =
-        std::make_unique<FakePciDataHandler>(memoryRegionOffset, buffer.data(), memoryRegionSize);
+        std::make_unique<FakePciDataHandler>(buffer.data(), buffer.size());
 
   std::shared_ptr<BufferInterface> bufferHandler =
         std::make_shared<BufferImpl>(std::move(pciDataHandler));
