@@ -1,21 +1,25 @@
 #include "config.h"
-
 #include "buffer.hpp"
 #include "pci_handler.hpp"
 #include "rde/external_storer_file.hpp"
 #include "rde/external_storer_interface.hpp"
 #include "rde/rde_handler.hpp"
-#include "read_loop.hpp" 
+#include "read_loop.hpp"
 
 #include <boost/asio.hpp>
-#include <sdbusplus/asio/object_server.hpp>
+#include <sdbusplus/asio/connection.hpp>
+#include <stdplus/print.hpp>
 
-#include <chrono>
-#include <memory>
-
-#include <iostream>
-#include <vector>
 #include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 using namespace bios_bmc_smm_error_logger;
 
@@ -46,7 +50,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     
         // bufferHandler initialization
         std::unique_ptr<DataInterface> pciDataHandler =
-           std::make_unique<PciDataHandler>(buffer.data(), memoryRegionSize);
+            std::make_unique<PciDataHandler>(buffer.data(), memoryRegionSize);
         bufferHandler = std::make_shared<BufferImpl>(std::move(pciDataHandler));
  
         // rdeCommandHandler initialization
@@ -80,7 +84,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
           ec
         );
     } catch (const std::runtime_error& e) {
-        std::cout << "Caught std::runtime_error (ignored by fuzzer): " << e.what() << std::endl;
+        stdplus::print(stderr,
+            "Caught std::runtime_error (ignored by fuzzer): {}.\n", e.what());
     }
     return 0;
 }

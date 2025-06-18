@@ -3,12 +3,22 @@ bios_bmc_smm_error_logger_pre = declare_dependency(
     dependencies: [dependency('threads'), dependency('stdplus')],
 )
 
+libfuzzer_args = [
+    #'-fsanitize=fuzzer,address',  # Add 'undefined' or 'memory' if needed
+    '-fsanitize=fuzzer',  # Add 'undefined' or 'memory' if needed
+    '-fno-omit-frame-pointer',
+    '-fprofile-instr-generate', 
+    '-fcoverage-mapping',
+    '-g'
+]
+
 bios_bmc_smm_error_logger_lib = static_library(
     'bios_bmc_smm_error_logger',
     'pci_handler.cpp',
     'buffer.cpp',
     implicit_include_directories: false,
     dependencies: bios_bmc_smm_error_logger_pre,
+    cpp_args: libfuzzer_args,
 )
 
 bios_bmc_smm_error_logger_dep = declare_dependency(
@@ -16,25 +26,19 @@ bios_bmc_smm_error_logger_dep = declare_dependency(
     dependencies: bios_bmc_smm_error_logger_pre,
 )
 
-libfuzzer_args = [
-  '-fsanitize=fuzzer,address',  # Add 'undefined' or 'memory' if needed
-  '-fno-omit-frame-pointer',
-  '-g'
-]
-
 libfuzzer_dep = declare_dependency(
-  compile_args: libfuzzer_args,
-  link_args: libfuzzer_args
+    compile_args: libfuzzer_args,
+    link_args: libfuzzer_args
 )
 
 exe_sources = ['read_loop.cpp']
 exe_dependencies = [bios_bmc_smm_error_logger_dep, rde_dep]
 
 if get_option('fuzzing')
-  exe_sources += ['fuzzer.cpp']
-  exe_dependencies += [libfuzzer_dep]
+    exe_sources += ['fuzzer.cpp']
+    exe_dependencies += [libfuzzer_dep]
 else
-  exe_sources += ['main.cpp']
+    exe_sources += ['main.cpp']
 endif
 
 executable(
