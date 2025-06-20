@@ -37,6 +37,7 @@ static constexpr std::array<uint32_t, 4> magicNumber = {
 // Global state variables
 static bool isInitialized = false;
 static std::vector<uint8_t> buffer;
+static boost::asio::io_context io;
 static std::shared_ptr<BufferInterface> bufferHandler;
 static std::shared_ptr<rde::RdeCommandHandler> rdeCommandHandler;
 } // namespace
@@ -45,7 +46,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     if (!isInitialized) {
         buffer.resize(memoryRegionSize);
         
-        boost::asio::io_context io;
         boost::asio::steady_timer t(io, readIntervalinMs); // ignored for fuzzing
     
         // bufferHandler initialization
