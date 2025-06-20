@@ -1,7 +1,8 @@
+cmake = import('cmake')
 gtest = dependency('gtest', main: true, disabler: true, required: false)
 gmock = dependency('gmock', disabler: true, required: false)
 if not gtest.found() or not gmock.found()
-    gtest_opt = import('cmake').subproject_options()
+    gtest_opt = cmake.subproject_options()
     gtest_opt.append_compile_args('c++', ['-DCMAKE_CXX_FLAGS=-Wno-pedantic'])
     gtest_proj = cmake.subproject(
         'googletest',
