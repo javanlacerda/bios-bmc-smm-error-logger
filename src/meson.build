@@ -5,7 +5,7 @@ bios_bmc_smm_error_logger_pre = declare_dependency(
 
 libfuzzer_args = [
     #'-fsanitize=fuzzer,address',  # Add 'undefined' or 'memory' if needed
-    '-fsanitize=leak,fuzzer',  # Add 'undefined' or 'memory' if needed
+    '-fsanitize=leak,fuzzer,address',  # Add 'undefined' or 'memory' if needed
     '-fno-omit-frame-pointer',
     '-fprofile-instr-generate', 
     '-fcoverage-mapping',
