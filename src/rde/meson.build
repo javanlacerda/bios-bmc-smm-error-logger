@@ -1,4 +1,5 @@
 libfuzzer_args = [
+    '-fsanitize=leak,address',
     '-fno-omit-frame-pointer',
     '-fprofile-instr-generate',
     '-fcoverage-mapping',
