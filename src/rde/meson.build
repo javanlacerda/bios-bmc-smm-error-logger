@@ -1,3 +1,10 @@
+libfuzzer_args = [
+    '-fno-omit-frame-pointer',
+    '-fprofile-instr-generate',
+    '-fcoverage-mapping',
+    '-g'
+]
+
 rde_pre = declare_dependency(
     include_directories: [rde_inc],
     dependencies: [
@@ -8,15 +15,6 @@ rde_pre = declare_dependency(
         dependency('stdplus'),
     ],
 )
-
-libfuzzer_args = [
-    #'-fsanitize=fuzzer,address',  # Add 'undefined' or 'memory' if needed
-    '-fsanitize=leak,fuzzer,address',  # Add 'undefined' or 'memory' if needed
-    '-fno-omit-frame-pointer',
-    '-fprofile-instr-generate', 
-    '-fcoverage-mapping',
-    '-g'
-]
 
 rde_lib = static_library(
     'rde',
