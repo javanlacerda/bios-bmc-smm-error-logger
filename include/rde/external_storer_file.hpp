@@ -84,7 +84,7 @@ class ExternalStorerFileInterface : public ExternalStorerInterface
 {
   public:
     /**
-     * @brief Constructor for the ExternalStorerFileInterface.
+     * @brief Constructor for the ExternalStorerFileInterface for production.
      *
      * @param[in] conn - sdbusplus asio connection.
      * @param[in] rootPath - root path for creating redfish folders.
@@ -98,6 +98,23 @@ class ExternalStorerFileInterface : public ExternalStorerInterface
      */
     ExternalStorerFileInterface(
         const std::shared_ptr<sdbusplus::asio::connection>& conn,
+        std::string_view rootPath,
+        std::unique_ptr<FileHandlerInterface> fileHandler,
+        uint32_t numSavedLogEntries = 20, uint32_t numLogEntries = 980);
+
+    /**
+     * @brief Constructor for the ExternalStorerFileInterface for testing.
+     *
+     * @param[in] rootPath - root path for creating redfish folders.
+     * Eg: "/run/bmcweb"
+     * @param[in] fileHandler - an ExternalStorerFileWriter object. This class
+     * will take the ownership of this object.
+     * @param[in] numSavedLogEntries - first N number of log entries to be saved
+     * in the queue (default shall be 20)
+     * @param[in] numLogEntries - number of non-saved log entries in the queue
+     * (default shall be 1000 - 20)
+     */
+    ExternalStorerFileInterface(
         std::string_view rootPath,
         std::unique_ptr<FileHandlerInterface> fileHandler,
         uint32_t numSavedLogEntries = 20, uint32_t numLogEntries = 980);

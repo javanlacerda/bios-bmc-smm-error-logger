@@ -54,15 +54,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
         bufferHandler = std::make_shared<BufferImpl>(std::move(pciDataHandler));
  
         // rdeCommandHandler initialization
-        std::shared_ptr<sdbusplus::asio::connection> conn =
-            std::make_shared<sdbusplus::asio::connection>(io);
-        conn->request_name("xyz.openbmc_project.bios_bmc_smm_error_logger");
-    
         std::unique_ptr<rde::FileHandlerInterface> fileIface =
             std::make_unique<rde::ExternalStorerFileWriter>();
         std::unique_ptr<rde::ExternalStorerInterface> exFileIface =
             std::make_unique<rde::ExternalStorerFileInterface>(
-                conn, "/run/bmcweb", std::move(fileIface));
+                "/run/bmcweb", std::move(fileIface));
 
         rdeCommandHandler =
             std::make_unique<rde::RdeCommandHandler>(std::move(exFileIface));

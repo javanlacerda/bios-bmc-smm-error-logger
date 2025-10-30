@@ -67,6 +67,15 @@ ExternalStorerFileInterface::ExternalStorerFileInterface(
     maxNumSavedLogEntries(numSavedLogEntries), maxNumLogEntries(numLogEntries)
 {}
 
+ExternalStorerFileInterface::ExternalStorerFileInterface(
+    std::string_view rootPath,
+    std::unique_ptr<FileHandlerInterface> fileHandler,
+    uint32_t numSavedLogEntries, uint32_t numLogEntries) :
+    rootPath(rootPath), fileHandler(std::move(fileHandler)), logServiceId(""),
+    cperNotifier(nullptr), maxNumSavedLogEntries(numSavedLogEntries),
+    maxNumLogEntries(numLogEntries)
+{}
+
 bool ExternalStorerFileInterface::publishJson(std::string_view jsonStr)
 {
     nlohmann::json jsonDecoded;
@@ -169,7 +178,10 @@ bool ExternalStorerFileInterface::processLogEntry(nlohmann::json& logEntry)
         return false;
     }
 
-    cperNotifier->createEntry(fullPath + "/index.json");
+    if (cperNotifier)
+    {
+        cperNotifier->createEntry(fullPath + "/index.json");
+    }
 
     // Attempt to push to logEntrySavedQueue first, before pushing to
     // logEntryQueue that can be popped
