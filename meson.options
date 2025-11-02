@@ -68,3 +68,10 @@ option(
     value: 4,
     description: 'Magic Number array[3] for validity, consists of 4 * uint32_t',
 )
+
+option(
+    'fuzzer-sanitize',
+    type: 'string',
+    value: 'leak,fuzzer,address',
+    description: 'Sanitizers to use for the fuzzer (e.g., leak,fuzzer,address)',
+)
