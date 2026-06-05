@@ -240,5 +240,59 @@ TEST_F(ExternalStorerFileTest, OtherSchemaTypeTest)
     EXPECT_THAT(exStorer->publishJson(jsonStr), true);
 }
 
+TEST_F(ExternalStorerFileTest, OtherSchemaPathTraversalRejected)
+{
+    // @odata.id comes from BIOS supplied PDR data. A "../" sequence must not
+    // escape rootPath.
+    std::string jsonStr = R"(
+      {
+        "@odata.id": "/redfish/v1/../../../../../../tmp/evil",
+        "@odata.type": "#MemoryMetrics.v1_4_1.MemoryMetrics",
+        "Id": "Metrics"
+      }
+    )";
+    EXPECT_CALL(*mockFileWriterPtr, createFile(_, _)).Times(0);
+    EXPECT_THAT(exStorer->publishJson(jsonStr), false);
+}
+
+TEST_F(ExternalStorerFileTest, LogServicePathTraversalRejected)
+{
+    std::string jsonStr = R"(
+      {
+        "@odata.id": "/redfish/v1/Systems/system/LogServices/../../../../../tmp/x",
+        "@odata.type": "#LogService.v1_1_0.LogService","Id":"x"
+      }
+    )";
+    EXPECT_CALL(*mockFileWriterPtr, createFile(_, _)).Times(0);
+    EXPECT_THAT(exStorer->publishJson(jsonStr), false);
+}
+
+TEST_F(ExternalStorerFileTest, LogEntryPathTraversalRejected)
+{
+    InSequence s;
+    // A benign @odata.id but a malicious Id, which becomes the logServiceId
+    // path segment used to build the LogEntry path.
+    std::string jsonLogService = R"(
+      {
+        "@odata.id": "/redfish/v1/Systems/system/LogServices/svc",
+        "@odata.type": "#LogService.v1_1_0.LogService",
+        "Id":"../../../../../../tmp"
+      }
+    )";
+    EXPECT_CALL(*mockFileWriterPtr, createFile(_, _))
+        .Times(2)
+        .WillRepeatedly(Return(true));
+    EXPECT_THAT(exStorer->publishJson(jsonLogService), true);
+
+    std::string jsonLogEntry = R"(
+      {
+        "@odata.id": "/some/odata/id",
+        "@odata.type": "#LogEntry.v1_13_0.LogEntry"
+      }
+    )";
+    EXPECT_CALL(*mockFileWriterPtr, createFile(_, _)).Times(0);
+    EXPECT_THAT(exStorer->publishJson(jsonLogEntry), false);
+}
+
 } // namespace rde
 } // namespace bios_bmc_smm_error_logger
