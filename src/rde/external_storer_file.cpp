@@ -154,6 +154,15 @@ bool ExternalStorerFileInterface::processLogEntry(nlohmann::json& logEntry)
         std::format("{}/redfish/v1/Systems/system/LogServices/{}/Entries/{}",
                     rootPath, logServiceId, id);
 
+    if (!isPathUnderRoot(fullPath))
+    {
+        stdplus::print(stderr,
+                       "Rejecting log entry path outside of the root "
+                       "folder: {}\n",
+                       fullPath);
+        return false;
+    }
+
     // Populate the "Id" with the UUID we generated.
     logEntry["Id"] = id;
     // Remove the @odata.id from the JSON since ExternalStorer will fill it for
@@ -235,10 +244,30 @@ bool ExternalStorerFileInterface::processOtherTypes(
     return createFile(path, jsonPdr);
 }
 
+bool ExternalStorerFileInterface::isPathUnderRoot(
+    const std::string& fullPath) const
+{
+    std::filesystem::path normRoot =
+        std::filesystem::path(rootPath).lexically_normal();
+    std::filesystem::path normPath =
+        std::filesystem::path(fullPath).lexically_normal();
+    std::filesystem::path rel = normPath.lexically_relative(normRoot);
+    auto it = rel.begin();
+    return !rel.empty() && it != rel.end() && *it != "..";
+}
+
 bool ExternalStorerFileInterface::createFile(
     const std::string& subPath, const nlohmann::json& jsonPdr) const
 {
-    return fileHandler->createFile(rootPath + subPath, jsonPdr);
+    std::string fullPath = rootPath + subPath;
+    if (!isPathUnderRoot(fullPath))
+    {
+        stdplus::print(stderr,
+                       "Rejecting path outside of the root folder: {}\n",
+                       fullPath);
+        return false;
+    }
+    return fileHandler->createFile(fullPath, jsonPdr);
 }
 
 } // namespace rde

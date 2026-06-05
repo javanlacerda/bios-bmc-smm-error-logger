@@ -158,6 +158,18 @@ class ExternalStorerFileInterface : public ExternalStorerInterface
      */
     bool createFile(const std::string& subPath,
                     const nlohmann::json& jsonPdr) const;
+
+    /**
+     * @brief Check that a fully resolved path stays within rootPath.
+     *
+     * The path components originate from BIOS supplied PDR fields
+     * (@odata.id, Id) and are otherwise used verbatim, so a "../" sequence
+     * would let those fields escape rootPath.
+     *
+     * @param fullPath - rootPath joined with the untrusted portion.
+     * @return true if fullPath is contained within rootPath.
+     */
+    bool isPathUnderRoot(const std::string& fullPath) const;
 };
 
 } // namespace rde
