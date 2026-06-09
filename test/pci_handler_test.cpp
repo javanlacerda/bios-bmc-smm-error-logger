@@ -140,5 +140,19 @@ TEST_F(PciHandlerTest, WritePasses)
     EXPECT_THAT(testMapped, ElementsAreArray(expectedMapped));
 }
 
+TEST(PciHandlerLargeRegion, WriteLengthIsNotTruncated)
+{
+    // Region larger than 16 bits so the clamped length exceeds a uint16_t.
+    constexpr size_t regionSize = 0x10000 + 16;
+    std::vector<uint8_t> backing(regionSize, 0);
+    PciDataHandler pciDataHandler(backing.data(), regionSize);
+
+    std::vector<uint8_t> payload(regionSize, 0xab);
+    // The whole region is writable in one call; the returned count must cover
+    // every byte instead of wrapping at 16 bits.
+    EXPECT_EQ(pciDataHandler.write(0, payload), regionSize);
+    EXPECT_THAT(backing, ElementsAreArray(payload));
+}
+
 } // namespace
 } // namespace bios_bmc_smm_error_logger

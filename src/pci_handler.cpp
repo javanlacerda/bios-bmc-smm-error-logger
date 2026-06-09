@@ -41,9 +41,10 @@ std::vector<uint8_t> PciDataHandler::read(const uint32_t offset,
         return {};
     }
 
-    // Read up to regionSize in case the offset + length overflowed
+    // Clamp to the bytes remaining from offset. Comparing against the
+    // remaining space avoids the offset + length wraparound.
     uint32_t finalLength =
-        (offset + length < regionSize) ? length : regionSize - offset;
+        (length < regionSize - offset) ? length : regionSize - offset;
     std::vector<uint8_t> results(finalLength);
 
     // Use a volatile pointer to ensure every access reads directly from the
@@ -73,16 +74,17 @@ uint32_t PciDataHandler::write(const uint32_t offset,
         return 0;
     }
 
-    // Write up to regionSize in case the offset + length overflowed
-    uint16_t finalLength =
-        (offset + length < regionSize) ? length : regionSize - offset;
+    // Clamp to the bytes remaining from offset. Comparing against the
+    // remaining space avoids the offset + length wraparound.
+    uint32_t finalLength =
+        (length < regionSize - offset) ? length : regionSize - offset;
     // Use a volatile pointer to ensure every access writes directly to the
     // memory-mapped region.
     volatile uint8_t* dest =
         reinterpret_cast<volatile uint8_t*>(data_ptr + offset);
 
     // Perform a byte-by-byte copy to ensure volatile semantics.
-    for (uint16_t i = 0; i < finalLength; ++i)
+    for (uint32_t i = 0; i < finalLength; ++i)
     {
         dest[i] = bytes[i];
     }
