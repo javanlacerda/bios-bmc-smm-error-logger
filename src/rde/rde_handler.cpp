@@ -69,17 +69,22 @@ RdeDecodeStatus RdeCommandHandler::operationInitRequest(
         return RdeDecodeStatus::RdeOk;
     }
 
-    // Ensure rdeCommand is large enough for header + locator + declared
-    // payload.
-    size_t expectedTotalSize =
-        sizeof(RdeOperationInitReqHeader) + header->operationLocatorLength +
-        header->requestPayloadLength;
-    if (rdeCommand.size() < expectedTotalSize)
+    // Ensure rdeCommand holds the locator and the declared payload. size() is
+    // already known to be >= sizeof(RdeOperationInitReqHeader), so measure the
+    // remaining space with subtraction. Adding the BIOS-supplied locator and
+    // payload lengths to the header size would wrap a 32-bit size_t (the BMC
+    // runs on 32-bit ARM) and let the check pass for a payload far larger than
+    // the buffer, after which the span below would read past it.
+    size_t remaining = rdeCommand.size() - sizeof(RdeOperationInitReqHeader);
+    if (header->operationLocatorLength > remaining ||
+        header->requestPayloadLength >
+            remaining - header->operationLocatorLength)
     {
         stdplus::print(
             stderr,
-            "RDE OperationInitRequest command size is smaller than header + locator + declared payload size. Received: {}, Expected: {}\n",
-            rdeCommand.size(), expectedTotalSize);
+            "RDE OperationInitRequest command size is smaller than header + locator + declared payload size. Received: {}, locator: {}, payload: {}\n",
+            rdeCommand.size(), header->operationLocatorLength,
+            header->requestPayloadLength);
         return RdeDecodeStatus::RdeInvalidCommand;
     }
 
@@ -161,8 +166,12 @@ RdeDecodeStatus RdeCommandHandler::multiPartReceiveResp(
     const MultipartReceiveResHeader* header =
         reinterpret_cast<const MultipartReceiveResHeader*>(rdeCommand.data());
 
-    if (rdeCommand.size() <
-        sizeof(MultipartReceiveResHeader) + header->dataLengthBytes)
+    // size() is already known to be >= sizeof(MultipartReceiveResHeader).
+    // Compare the BIOS-supplied dataLengthBytes against the remaining space
+    // with subtraction; adding it to the header size would wrap a 32-bit
+    // size_t and accept a buffer shorter than the declared payload.
+    if (header->dataLengthBytes >
+        rdeCommand.size() - sizeof(MultipartReceiveResHeader))
     {
         stdplus::print(
             stderr,
@@ -242,11 +251,16 @@ RdeDecodeStatus RdeCommandHandler::handleCrc(
         reinterpret_cast<const MultipartReceiveResHeader*>(
             multiReceiveRespCmd.data());
 
-    // Validate that the total message size (header + data + checksum) does not
-    // exceed the actual size of the received buffer.
-    size_t expectedSize = sizeof(MultipartReceiveResHeader) +
-                          header->dataLengthBytes + sizeof(uint32_t);
-    if (expectedSize != multiReceiveRespCmd.size())
+    // Validate that the total message size (header + data + checksum) matches
+    // the actual size of the received buffer. header + checksum is a
+    // compile-time constant, so compare dataLengthBytes using subtraction; the
+    // old header + data + checksum addition wraps a 32-bit size_t when the
+    // BIOS-supplied dataLengthBytes is near UINT32_MAX and would accept a short
+    // buffer.
+    constexpr size_t fixedBytes =
+        sizeof(MultipartReceiveResHeader) + sizeof(uint32_t);
+    if (multiReceiveRespCmd.size() < fixedBytes ||
+        header->dataLengthBytes != multiReceiveRespCmd.size() - fixedBytes)
     {
         stdplus::print(
             stderr,
